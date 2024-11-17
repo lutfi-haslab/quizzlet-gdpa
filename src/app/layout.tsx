@@ -9,6 +9,14 @@ import {
   SignInButton,
   UserButton,
 } from "@clerk/nextjs";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import TanstackProvider from "@/providers/TanstackProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -37,17 +45,21 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          {/* <header>
+          <TanstackProvider>
+            {
+              /* <header>
             <SignedOut>
               <SignInButton />
             </SignedOut>
             <SignedIn>
               <UserButton />
             </SignedIn>
-          </header> */}
-          <SidebarProvider>
-            {children}
-          </SidebarProvider>
+          </header> */
+            }
+            <SidebarProvider>
+              {children}
+            </SidebarProvider>
+          </TanstackProvider>
         </body>
       </html>
     </ClerkProvider>
