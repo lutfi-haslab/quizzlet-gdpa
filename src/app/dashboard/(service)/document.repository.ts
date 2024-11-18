@@ -99,10 +99,7 @@ export async function processDocument(
   }
 }
 
-export async function uploadDocument(
-  file: Buffer,
-  originalName: string
-): Promise<string> {
+export async function uploadDocument(file: Buffer, originalName: string) {
   try {
     const uniqueId = uuidv4();
     const fileName = `${uniqueId}-${originalName}`;
@@ -122,12 +119,6 @@ export async function uploadDocument(
     return fileName;
   } catch (error: any) {
     console.error("Error uploading document:", error);
-    throw new Error(
-      JSON.stringify({
-        error: "Failed to upload document" || error?.error,
-        message: error?.message || "",
-      })
-    );
   }
 }
 
