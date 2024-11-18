@@ -15,7 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDashboard } from "../../(context)/useDashboard";
-import { Question, QuizHistory } from "../../(model)/quiz";
+import { Question, QuizHistory, TakenQuiz } from "../../(model)/quiz";
 import {
   getQuestionsByQuizId,
   getQuizHistoryByUserId,
@@ -85,8 +85,9 @@ export default function QuizApp() {
   const userId = searchParams.get("user_id") as string;
 
   const [questionData, setQuestionData] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<TakenQuiz[]>([]);
 
-  const { queryClient } = useDashboard();
+  const { queryClient, mutateTakenQuizzes } = useDashboard();
   const { data: question, isLoading: isLoadingQuestion } = useQuery({
     queryKey: ["questions"],
     queryFn: async () => {
@@ -112,16 +113,16 @@ export default function QuizApp() {
     5,
   );
 
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-
-  const handleAnswerChange = (questionId: number, answer: string) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: answer }));
+  const handleAnswerChange = (questionId: string, answer: string) => {
+    setAnswers((prev) => [...prev, { questionId, answer }]);
   };
 
   const handleSubmit = () => {
     console.log("Submitted answers:", answers);
-    // Here you would typically send the answers to a server or process them
-    alert("Quiz submitted! Check the console for the answers.");
+    mutateTakenQuizzes({
+      quizId: id,
+      takenQuestion: answers,
+    });
   };
 
   const deserializeSlug = (slug: string) => {
@@ -148,7 +149,8 @@ export default function QuizApp() {
                       ? quizHistory.find((item: QuizHistory) =>
                         item.question.id === question.id
                       )?.answer
-                      : answers[question.id] || ""}
+                      : answers.find((a) => a.questionId === question.id)
+                        ?.answer || ""}
                     onAnswerChange={(answer) =>
                       handleAnswerChange(question.id, answer)}
                   />
@@ -160,7 +162,8 @@ export default function QuizApp() {
                       ? quizHistory.find((item: QuizHistory) =>
                         item.question.id === question.id
                       )?.answer
-                      : answers[question.id] || ""}
+                      : answers.find((a) => a.questionId === question.id)
+                        ?.answer || ""}
                     onAnswerChange={(answer) =>
                       handleAnswerChange(question.id, answer)}
                   />

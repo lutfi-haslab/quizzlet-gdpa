@@ -62,7 +62,8 @@ export async function getQuizHistoryByUserId(userId: string): Promise<any> {
   const { data, error } = await supabase
     .from("quizhistory")
     .select("score, taken_at, quiz(*), question(*), answer")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .order("taken_at", { ascending: false });
 
   console.log("Quiz history", data);
 
@@ -71,4 +72,55 @@ export async function getQuizHistoryByUserId(userId: string): Promise<any> {
   }
 
   return data;
+}
+
+export async function addQuizHistory(
+  userId: string,
+  quizId: string,
+  answers: { questionId: string; answer: string }[]
+): Promise<void> {
+  console.log("addQuizHistory", userId, quizId, answers);
+
+  try {
+    const supabase = await getServerClient();
+    // Fetch questions to calculate score
+    const { data: questions, error: questionsError } = await supabase
+      .from("question")
+      .select("id, correct_answer")
+      .eq("quiz_id", quizId);
+
+    if (questionsError) {
+      throw new Error(`Failed to fetch questions: ${questionsError.message}`);
+    }
+
+    // Calculate score
+    let correctAnswers = 0;
+    questions.forEach((question) => {
+      const userAnswer = answers.find((a) => a.questionId === question.id);
+      if (userAnswer && userAnswer.answer === question.correct_answer) {
+        correctAnswers++;
+      }
+    });
+
+    const totalQuestions = questions.length;
+    const score = (correctAnswers / totalQuestions) * 100;
+
+    // Insert each answer into QuizHistory
+    const { error: historyError } = await supabase.from("quizhistory").insert(
+      answers.map((answer) => ({
+        user_id: userId,
+        quiz_id: quizId,
+        question_id: answer.questionId,
+        answer: answer.answer,
+        score: score,
+      }))
+    );
+
+    if (historyError) {
+      throw new Error(`Failed to insert quiz history: ${historyError.message}`);
+    }
+  } catch (error: any) {
+    console.error(`Error recording quiz history: ${error?.message}`);
+    throw error;
+  }
 }

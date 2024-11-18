@@ -28,6 +28,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useDashboard } from "../(context)/useDashboard";
+import { Quiz } from "../(model)/quiz";
 
 function QuizHistoryItem({ quiz, user_id }: { quiz: any, user_id: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -142,16 +143,16 @@ export default function BlockPage() {
         </CardContent>
       </Card>
 
-      <section>
+      <div>
         <h2 className="text-2xl font-bold mb-4">Quiz History</h2>
-        {quizHistory?.map((quiz: any) => (
+        {quizHistory?.map((quiz: Quiz, id: number) => (
           <QuizHistoryItem
-            key={quiz.id}
+            key={id}
             quiz={quiz}
             user_id={user?.id as string}
           />
         ))}
-      </section>
+      </div>
     </div>
   );
 }

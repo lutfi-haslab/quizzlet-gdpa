@@ -8,13 +8,12 @@ export interface Quiz {
 type QuestionType = "mcq" | "open-ended" | "mcq & open-ended";
 
 export interface Question {
-  id: number;
+  id: string;
   type: QuestionType;
   question: string;
   options?: string[];
   correctAnswer?: string;
 }
-
 
 export interface QuizHistory {
   score: number;
@@ -22,4 +21,9 @@ export interface QuizHistory {
   answer: string;
   quiz: Quiz;
   question: Question;
+}
+
+export interface TakenQuiz {
+  questionId: string;
+  answer: string;
 }

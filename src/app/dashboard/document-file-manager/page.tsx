@@ -24,78 +24,43 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
 import { UploadIcon } from "lucide-react";
-import { useState } from "react";
-
-// Define types based on the provided schemas
-type Document = {
-  id: string;
-  fileName: string;
-  originalName: string;
-  fileSize: number;
-  uploadDate: string;
-  storagePath: string;
-  created_at: string;
-};
-
-type File = {
-  name: string;
-  id: string;
-  updated_at: string;
-  created_at: string;
-  last_accessed_at: string;
-  metadata: {
-    eTag: string;
-    size: number;
-    mimetype: string;
-    cacheControl: string;
-    lastModified: string;
-    contentLength: number;
-    httpStatusCode: number;
-  };
-};
-
-// Mock data for demonstration
-const mockDocuments: Document[] = [
-  {
-    "id": "4388b9aa-9a91-4b9c-b02f-c02364cee6eb",
-    "fileName":
-      "7ea5deb4-6b60-431f-a1f2-e24abe7bdd23-ECES-Cards-Module-1-5.pdf",
-    "originalName": "ECES-Cards-Module-1-5.pdf",
-    "fileSize": 127249,
-    "uploadDate": "2024-11-15T08:26:11.417+00:00",
-    "storagePath": "uploads/ECES-Cards-Module-1-5.pdf",
-    "created_at": "2024-11-15T08:26:11.606053+00:00",
-  },
-];
-
-const mockFiles: File[] = [
-  {
-    "name": "ECES-Cards-Module-1-5.pdf",
-    "id": "7a1a6b79-d2d0-4839-af51-71493fbc26d3",
-    "updated_at": "2024-11-15T08:26:11.087Z",
-    "created_at": "2024-11-15T08:26:11.087Z",
-    "last_accessed_at": "2024-11-15T08:26:11.087Z",
-    "metadata": {
-      "eTag": '"e9981cdd8c898862499c1f019348e339"',
-      "size": 127249,
-      "mimetype": "text/plain;charset=UTF-8",
-      "cacheControl": "max-age=3600",
-      "lastModified": "2024-11-15T08:26:12.000Z",
-      "contentLength": 127249,
-      "httpStatusCode": 200,
-    },
-  },
-];
+import { useEffect, useState } from "react";
+import {
+  DocumentMetadata,
+  FileObject
+} from "../(model)/document";
+import { listDocuments, listFiles } from "../(service)/document.repository";
 
 export default function page() {
   const [activeTab, setActiveTab] = useState("documents");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedItem, setSelectedItem] = useState<Document | File | null>(
-    null,
-  );
+  const [selectedDocument, setSelectedDocument] = useState<
+    DocumentMetadata | null
+  >(null);
+  const [selectedFile, setSelectedFile] = useState<FileObject | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const itemsPerPage = 10;
+
+  const { data: documents, isLoading: isLoadingDocuments } = useQuery({
+    queryKey: ["documents"],
+    queryFn: async () => {
+      return await listDocuments();
+    },
+  });
+
+  const { data: files, isLoading: isLoadingFiles } = useQuery({
+    queryKey: ["files"],
+    queryFn: async () => {
+      return await listFiles();
+    },
+  });
+
+  useEffect(() => {
+    console.log("documents", documents);
+    console.log("files", files);
+  }, [documents, files]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -122,8 +87,15 @@ export default function page() {
     );
   };
 
-  const openModal = (item: Document | File) => {
-    setSelectedItem(item);
+  const openDocumentModal = (document: DocumentMetadata) => {
+    setSelectedDocument(document);
+    setSelectedFile(null);
+    setIsModalOpen(true);
+  };
+
+  const openFileModal = (file: FileObject) => {
+    setSelectedFile(file);
+    setSelectedDocument(null);
     setIsModalOpen(true);
   };
 
@@ -137,10 +109,10 @@ export default function page() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {mockDocuments.map((doc) => (
+        {documents?.map((doc) => (
           <TableRow
             key={doc.id}
-            onClick={() => openModal(doc)}
+            onClick={() => openDocumentModal(doc)}
             className="cursor-pointer hover:bg-gray-100"
           >
             <TableCell>{doc.originalName}</TableCell>
@@ -162,10 +134,10 @@ export default function page() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {mockFiles.map((file) => (
+        {files?.map((file) => (
           <TableRow
             key={file.id}
-            onClick={() => openModal(file)}
+            onClick={() => openFileModal(file)}
             className="cursor-pointer hover:bg-gray-100"
           >
             <TableCell>{file.name}</TableCell>
@@ -180,10 +152,7 @@ export default function page() {
   );
 
   const renderModalContent = () => {
-    if (!selectedItem) return null;
-
-    if ("fileName" in selectedItem) {
-      // It's a Document
+    if (selectedDocument) {
       return (
         <>
           <DialogHeader>
@@ -192,29 +161,30 @@ export default function page() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <span className="font-medium">File Name:</span>
-              <span className="col-span-3">{selectedItem.originalName}</span>
+              <span className="col-span-3">
+                {selectedDocument.originalName}
+              </span>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <span className="font-medium">Size:</span>
               <span className="col-span-3">
-                {(selectedItem.fileSize / 1024).toFixed(2)} KB
+                {(selectedDocument.fileSize / 1024).toFixed(2)} KB
               </span>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <span className="font-medium">Upload Date:</span>
               <span className="col-span-3">
-                {new Date(selectedItem.uploadDate).toLocaleString()}
+                {new Date(selectedDocument.uploadDate).toLocaleString()}
               </span>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <span className="font-medium">Storage Path:</span>
-              <span className="col-span-3">{selectedItem.storagePath}</span>
+              <span className="col-span-3">{selectedDocument.storagePath}</span>
             </div>
           </div>
         </>
       );
-    } else {
-      // It's a File
+    } else if (selectedFile) {
       return (
         <>
           <DialogHeader>
@@ -223,30 +193,31 @@ export default function page() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <span className="font-medium">File Name:</span>
-              <span className="col-span-3">{selectedItem.name}</span>
+              <span className="col-span-3">{selectedFile.name}</span>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <span className="font-medium">Size:</span>
               <span className="col-span-3">
-                {(selectedItem.metadata.size / 1024).toFixed(2)} KB
+                {(selectedFile.metadata.size / 1024).toFixed(2)} KB
               </span>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <span className="font-medium">Last Modified:</span>
               <span className="col-span-3">
-                {new Date(selectedItem.metadata.lastModified).toLocaleString()}
+                {new Date(selectedFile.metadata.lastModified).toLocaleString()}
               </span>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <span className="font-medium">MIME Type:</span>
               <span className="col-span-3">
-                {selectedItem.metadata.mimetype}
+                {selectedFile.metadata.mimetype}
               </span>
             </div>
           </div>
         </>
       );
     }
+    return null;
   };
 
   return (
@@ -277,11 +248,11 @@ export default function page() {
           </TabsList>
           <TabsContent value="documents">
             {renderDocumentsTable()}
-            {renderPagination(mockDocuments.length)}
+            {renderPagination(documents?.length || 0)}
           </TabsContent>
           <TabsContent value="files">
             {renderFilesTable()}
-            {renderPagination(mockFiles.length)}
+            {renderPagination(files?.length || 0)}
           </TabsContent>
         </Tabs>
       </CardContent>
